@@ -20,6 +20,7 @@ python test.py \
 --testlist=$TESTLIST \
 --outdir=$OUTDIR  \
 --filter_method="dynamic" \
+# shellcheck disable=SC2068
 --loadckpt $CKPT_FILE ${@:2}
 
 

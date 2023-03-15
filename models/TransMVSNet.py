@@ -154,7 +154,7 @@ class TransMVSNet(nn.Module):
         depth_max = float(depth_values[0, -1].cpu().numpy())
         depth_interval = (depth_max - depth_min) / depth_values.size(1)
 
-        # step 1. feature extraction
+        # TODO step 1. feature extraction
         features = []
         for nview_idx in range(imgs.size(1)):
             img = imgs[:, nview_idx]

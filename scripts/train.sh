@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # run this script in the root path of TransMVSNet
-MVS_TRAINING="/data/DTU/mvs_training/dtu/" # path to dataset mvs_training
+MVS_TRAINING="data/DTU/dtu_training/" # path to dataset mvs_training
 LOG_DIR="./outputs/dtu_training" # path to checkpoints
 if [ ! -d $LOG_DIR ]; then
 	mkdir -p $LOG_DIR
 fi
 
-NGPUS=8
+NGPUS=1
 BATCH_SIZE=1
 python -m torch.distributed.launch --nproc_per_node=$NGPUS train.py \
 	--logdir=$LOG_DIR \
