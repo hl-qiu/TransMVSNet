@@ -37,7 +37,7 @@ class DepthNet(nn.Module):
     def forward(self, features, proj_matrices, depth_values, num_depth, cost_regularization, prob_volume_init=None, view_weights=None):
         """forward.
 
-        :param stage_idx: int, index of stage, [1, 2, 3], stage_1 corresponds to lowest image resolution
+        :param stage_idx: int, index of stage, [1, 2, 3], stage_1 corresponds to lowest images resolution
         :param features: torch.Tensor, TODO: [B, C, H, W]
         :param proj_matrices: torch.Tensor,
         :param depth_values: torch.Tensor, TODO: [B, D, H, W]
@@ -87,6 +87,7 @@ class DepthNet(nn.Module):
         # aggregate multiple similarity across all the source views
         similarity = similarity_sum.div_(pixel_wise_weight_sum) # [B, 1, D, H, W]
 
+        # TODO 代价体正则化
         # step 3. cost volume regularization
         cost_reg = cost_regularization(similarity)
         prob_volume_pre = cost_reg.squeeze(1)
@@ -94,12 +95,14 @@ class DepthNet(nn.Module):
         if prob_volume_init is not None:
             prob_volume_pre += prob_volume_init
 
+
         prob_volume = torch.exp(F.log_softmax(prob_volume_pre, dim=1))
         depth = depth_wta(prob_volume, depth_values=depth_values)
 
         with torch.no_grad():
+            # TODO 得到光度置信度图
             photometric_confidence = torch.max(prob_volume, dim=1)[0]
-        if view_weights == None:
+        if view_weights is None:
             view_weights = torch.cat(view_weight_list, dim=1) # [B, Nview, H, W]
             return {"depth": depth,  "photometric_confidence": photometric_confidence, "prob_volume": prob_volume, "depth_values": depth_values}, view_weights.detach()
         else:
@@ -154,7 +157,7 @@ class TransMVSNet(nn.Module):
         depth_max = float(depth_values[0, -1].cpu().numpy())
         depth_interval = (depth_max - depth_min) / depth_values.size(1)
 
-        # TODO step 1. feature extraction
+        # TODO step 1. feature extraction 特征提取
         features = []
         for nview_idx in range(imgs.size(1)):
             img = imgs[:, nview_idx]
@@ -195,9 +198,10 @@ class TransMVSNet(nn.Module):
                     use_inverse_depth=Using_inverse_d)
 
             if stage_idx + 1 > 1: # for stage 2 and 3
+                # 上采样操作，scale_factor=2表示将后两维扩大2倍
                 view_weights = F.interpolate(view_weights, scale_factor=2, mode="nearest")
 
-            if view_weights == None: # stage 1
+            if view_weights is None: # stage 1
                 outputs_stage, view_weights = self.DepthNet(
                         features_stage,
                         proj_matrices_stage,
@@ -219,6 +223,7 @@ class TransMVSNet(nn.Module):
             outputs["stage{}".format(stage_idx + 1)] = outputs_stage
             outputs.update(outputs_stage)
 
+        # TODO 深度图优化
         if self.refine:
             refined_depth = self.refine_network(torch.cat((imgs[:, 0], depth), 1))
             outputs["refined_depth"] = refined_depth

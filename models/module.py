@@ -508,7 +508,7 @@ def entropy_loss(prob_volume, depth_gt, mask, depth_value, return_prob_map=False
     # gt index map -> gt one hot volume (B x 1 x H x W )
     gt_index_volume = torch.zeros(shape[0], depth_num, shape[1], shape[2]).type(mask_true.type()).scatter_(1, gt_index_image, 1)
 
-    # cross entropy image (B x D X H x W)
+    # cross entropy images (B x D X H x W)
     cross_entropy_image = -torch.sum(gt_index_volume * torch.log(prob_volume + 1e-6), dim=1).squeeze(1) # B, 1, H, W
 
     # masked cross entropy loss

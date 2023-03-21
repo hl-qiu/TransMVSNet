@@ -38,16 +38,17 @@ parser.add_argument('--interval_scale', type=float, required=True, help='the dep
 parser.add_argument('--num_view', type=int, default=5, help='num of view')
 # parser.add_argument('--max_h', type=int, default=864, help='testing max h')
 # parser.add_argument('--max_w', type=int, default=1152, help='testing max w')
-parser.add_argument('--max_h', type=int, default=3008, help='testing max h')
-parser.add_argument('--max_w', type=int, default=4032, help='testing max w')
+parser.add_argument('--max_h', type=int, default=1504, help='testing max h')
+parser.add_argument('--max_w', type=int, default=2016, help='testing max w')
 parser.add_argument('--fix_res', action='store_true', help='scene all using same res')
 parser.add_argument('--num_worker', type=int, default=4, help='depth_filer worker')
 parser.add_argument('--save_freq', type=int, default=20, help='save freq of local pcd')
-parser.add_argument('--filter_method', type=str, default='normal', choices=["gipuma", "normal", "dynamic"], help="filter method")
-#filter
+parser.add_argument('--filter_method', type=str, default='normal', choices=["gipuma", "normal", "dynamic"],
+                    help="filter method")
+# filter
 parser.add_argument('--conf', type=float, default=0.03, help='prob confidence')
 parser.add_argument('--thres_view', type=int, default=5, help='threshold of num view')
-#filter by gimupa
+# filter by gimupa
 parser.add_argument('--fusibile_exe_path', type=str, default='../fusibile/fusibile')
 parser.add_argument('--prob_threshold', type=float, default='0.01')
 parser.add_argument('--disp_threshold', type=float, default='0.25')
@@ -77,7 +78,7 @@ def read_camera_parameters(filename):
     return intrinsics, extrinsics
 
 
-# read an image
+# read an images
 def read_img(filename):
     img = Image.open(filename)
     # scale 0~255 to 0~1
@@ -110,6 +111,7 @@ def read_pair_file(filename):
                 data.append((ref_view, src_views))
     return data
 
+
 def write_cam(file, cam):
     f = open(file, "w")
     f.write('extrinsic\n')
@@ -125,14 +127,16 @@ def write_cam(file, cam):
             f.write(str(cam[1][i][j]) + ' ')
         f.write('\n')
 
-    f.write('\n' + str(cam[1][3][0]) + ' ' + str(cam[1][3][1]) + ' ' + str(cam[1][3][2]) + ' ' + str(cam[1][3][3]) + '\n')
+    f.write(
+        '\n' + str(cam[1][3][0]) + ' ' + str(cam[1][3][1]) + ' ' + str(cam[1][3][2]) + ' ' + str(cam[1][3][3]) + '\n')
 
     f.close()
 
-def save_depth(testlist):
 
+def save_depth(testlist):
     for scene in testlist:
         save_scene_depth([scene])
+
 
 # run CasMVS model to save depth maps and confidence maps
 def save_scene_depth(testlist):
@@ -144,10 +148,10 @@ def save_scene_depth(testlist):
 
     # model
     model = TransMVSNet(refine=False, ndepths=[int(nd) for nd in args.ndepths.split(",") if nd],
-                          depth_interals_ratio=[float(d_i) for d_i in args.depth_inter_r.split(",") if d_i],
-                          share_cr=args.share_cr,
-                          cr_base_chs=[int(ch) for ch in args.cr_base_chs.split(",") if ch],
-                          grad_method=args.grad_method)
+                        depth_interals_ratio=[float(d_i) for d_i in args.depth_inter_r.split(",") if d_i],
+                        share_cr=args.share_cr,
+                        cr_base_chs=[int(ch) for ch in args.cr_base_chs.split(",") if ch],
+                        grad_method=args.grad_method)
 
     # load checkpoint file specified by args.loadckpt
     print("loading model {}".format(args.loadckpt))
@@ -161,23 +165,28 @@ def save_scene_depth(testlist):
         for batch_idx, sample in enumerate(TestImgLoader):
             sample_cuda = tocuda(sample)
             start_time = time.time()
+            # TODO 获得模型输出
             outputs = model(sample_cuda["imgs"], sample_cuda["proj_matrices"], sample_cuda["depth_values"])
+
             end_time = time.time()
             outputs = tensor2numpy(outputs)
             del sample_cuda
             filenames = sample["filename"]
             cams = sample["proj_matrices"]["stage{}".format(num_stage)].numpy()
             imgs = sample["imgs"].numpy()
-            print('Iter {}/{}, Time:{} Res:{}'.format(batch_idx, len(TestImgLoader), end_time - start_time, imgs[0].shape))
+            print('Iter {}/{}, Time:{} Res:{}'.format(batch_idx, len(TestImgLoader), end_time - start_time,
+                                                      imgs[0].shape))
 
+            # TODO 保存 深度图（未经过残差网络优化） 和 置信度图
             # save depth maps and confidence maps
-            for filename, cam, img, depth_est, photometric_confidence, conf_1, conf_2 in zip(filenames, cams, imgs, \
-                                                            outputs["depth"], outputs["photometric_confidence"],  outputs['stage1']["photometric_confidence"], outputs['stage2']["photometric_confidence"]):
-                img = img[0]  #ref view
-                cam = cam[0]  #ref cam
-                H,W = photometric_confidence.shape
-                conf_1 = cv2.resize(conf_1, (W,H))
-                conf_2 = cv2.resize(conf_2, (W,H))
+            for filename, cam, img, depth_est, photometric_confidence, conf_1, conf_2 in \
+                    zip(filenames, cams, imgs, outputs["depth"], outputs["photometric_confidence"],
+                        outputs['stage1']["photometric_confidence"], outputs['stage2']["photometric_confidence"]):
+                img = img[0]  # ref view
+                cam = cam[0]  # ref cam
+                H, W = photometric_confidence.shape
+                conf_1 = cv2.resize(conf_1, (W, H))
+                conf_2 = cv2.resize(conf_2, (W, H))
                 conf_final = photometric_confidence * conf_1 * conf_2
 
                 depth_filename = os.path.join(args.outdir, filename.format('depth_est', '.pfm'))
@@ -190,17 +199,21 @@ def save_scene_depth(testlist):
                 os.makedirs(cam_filename.rsplit('/', 1)[0], exist_ok=True)
                 os.makedirs(img_filename.rsplit('/', 1)[0], exist_ok=True)
                 os.makedirs(ply_filename.rsplit('/', 1)[0], exist_ok=True)
-                #save depth maps
+                # TODO 保存深度图
+                # save depth maps
                 save_pfm(depth_filename, depth_est)
                 depth_color = visualize_depth(depth_est)
                 cv2.imwrite(os.path.join(args.outdir, filename.format('depth_est', '.png')), depth_color)
-                #save confidence maps
+                # TODO 保存置信度图
+                # save confidence maps
                 save_pfm(confidence_filename, conf_final)
-                cv2.imwrite(os.path.join(args.outdir, filename.format('confidence', '_3.png')), visualize_depth(photometric_confidence))
-                cv2.imwrite(os.path.join(args.outdir, filename.format('confidence', '_1.png')),visualize_depth(conf_1))
-                cv2.imwrite(os.path.join(args.outdir, filename.format('confidence', '_2.png')),visualize_depth(conf_2))
-                cv2.imwrite(os.path.join(args.outdir, filename.format('confidence', '_final.png')),visualize_depth(conf_final))
-                #save cams, img
+                cv2.imwrite(os.path.join(args.outdir, filename.format('confidence', '_3.png')),
+                            visualize_depth(photometric_confidence))
+                cv2.imwrite(os.path.join(args.outdir, filename.format('confidence', '_1.png')), visualize_depth(conf_1))
+                cv2.imwrite(os.path.join(args.outdir, filename.format('confidence', '_2.png')), visualize_depth(conf_2))
+                cv2.imwrite(os.path.join(args.outdir, filename.format('confidence', '_final.png')),
+                            visualize_depth(conf_final))
+                # save cams, img
                 write_cam(cam_filename, cam)
                 img = np.clip(np.transpose(img, (1, 2, 0)) * 255, 0, 255).astype(np.uint8)
                 img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
@@ -223,10 +236,10 @@ def save_scene_depth(testlist):
 # project the reference point cloud into the source view, then project back
 def reproject_with_depth(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, intrinsics_src, extrinsics_src):
     width, height = depth_ref.shape[1], depth_ref.shape[0]
-    ## step1. project reference pixels to the source view
+    # TODO step1. 将ref视图像素 投影 到src视图下 project reference pixels to the source view
     # reference view x, y
-    x_ref, y_ref = np.meshgrid(np.arange(0, width), np.arange(0, height))
-    x_ref, y_ref = x_ref.reshape([-1]), y_ref.reshape([-1])
+    x_ref, y_ref = np.meshgrid(np.arange(0, width), np.arange(0, height))  # 参考视图的坐标
+    x_ref, y_ref = x_ref.reshape([-1]), y_ref.reshape([-1])  # 拉成一维
     # reference 3D space
     xyz_ref = np.matmul(np.linalg.inv(intrinsics_ref),
                         np.vstack((x_ref, y_ref, np.ones_like(x_ref))) * depth_ref.reshape([-1]))
@@ -235,9 +248,9 @@ def reproject_with_depth(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, i
                         np.vstack((xyz_ref, np.ones_like(x_ref))))[:3]
     # source view x, y
     K_xyz_src = np.matmul(intrinsics_src, xyz_src)
-    xy_src = K_xyz_src[:2] / K_xyz_src[2:3]
+    xy_src = K_xyz_src[:2] / K_xyz_src[2:3]   # 归一化坐标z
 
-    ## step2. reproject the source view points with source view depth estimation
+    # TODO step2. 重投影reproject the source view points with source view depth estimation
     # find the depth estimation of the source view
     x_src = xy_src[0].reshape([height, width]).astype(np.float32)
     y_src = xy_src[1].reshape([height, width]).astype(np.float32)
@@ -252,20 +265,28 @@ def reproject_with_depth(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, i
     xyz_reprojected = np.matmul(np.matmul(extrinsics_ref, np.linalg.inv(extrinsics_src)),
                                 np.vstack((xyz_src, np.ones_like(x_ref))))[:3]
     # source view x, y, depth
+    # 重投影回来的坐标是世界坐标系下的坐标，第三维z就是深度值
     depth_reprojected = xyz_reprojected[2].reshape([height, width]).astype(np.float32)
-    K_xyz_reprojected = np.matmul(intrinsics_ref, xyz_reprojected)
-    xy_reprojected = K_xyz_reprojected[:2] / K_xyz_reprojected[2:3]
+    K_xyz_reprojected = np.matmul(intrinsics_ref, xyz_reprojected)  # 重投影回来的像素坐标（未归一化）
+    xy_reprojected = K_xyz_reprojected[:2] / K_xyz_reprojected[2:3]  # 归一化坐标，得到像素坐标
+    # 重投影回来的像素坐标
     x_reprojected = xy_reprojected[0].reshape([height, width]).astype(np.float32)
     y_reprojected = xy_reprojected[1].reshape([height, width]).astype(np.float32)
 
+    #
     return depth_reprojected, x_reprojected, y_reprojected, x_src, y_src
 
 
+# 几何一致性检查
 def check_geometric_consistency(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, intrinsics_src, extrinsics_src):
     width, height = depth_ref.shape[1], depth_ref.shape[0]
     x_ref, y_ref = np.meshgrid(np.arange(0, width), np.arange(0, height))
-    depth_reprojected, x2d_reprojected, y2d_reprojected, x2d_src, y2d_src = reproject_with_depth(depth_ref, intrinsics_ref, extrinsics_ref,
-                                                     depth_src, intrinsics_src, extrinsics_src)
+    depth_reprojected, x2d_reprojected, y2d_reprojected, x2d_src, y2d_src = reproject_with_depth(depth_ref,
+                                                                                                 intrinsics_ref,
+                                                                                                 extrinsics_ref,
+                                                                                                 depth_src,
+                                                                                                 intrinsics_src,
+                                                                                                 extrinsics_src)
     # check |p_reproj-p_1| < 1
     dist = np.sqrt((x2d_reprojected - x_ref) ** 2 + (y2d_reprojected - y_ref) ** 2)
 
@@ -273,19 +294,23 @@ def check_geometric_consistency(depth_ref, intrinsics_ref, extrinsics_ref, depth
     depth_diff = np.abs(depth_reprojected - depth_ref)
     relative_depth_diff = depth_diff / depth_ref
 
+    # 得到几何掩码
     mask = np.logical_and(dist < 1, relative_depth_diff < 0.01)
-    depth_reprojected[~mask] = 0
+    depth_reprojected[~mask] = 0  # 将那些不满足条件的位置的深度置为0
 
+    # 返回几何一致性约束的掩码图、经过掩码图过滤的重投影深度图、src视图下的像素坐标x2d_src和y2d_src
     return mask, depth_reprojected, x2d_src, y2d_src
 
 
+# 深度图过滤
 def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
     # the pair file
     pair_file = os.path.join(pair_folder, "pair.txt")
-    # for the final point cloud
-    vertexs = []
-    vertex_colors = []
+    # for the final point cloud 最终的点云
+    vertexs = []  # 最终的点云
+    vertex_colors = []  # 点云的颜色
 
+    # 配对数据
     pair_data = read_pair_file(pair_file)
     nviews = len(pair_data)
 
@@ -295,21 +320,23 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
         # load the camera parameters
         ref_intrinsics, ref_extrinsics = read_camera_parameters(
             os.path.join(scan_folder, 'cams/{:0>8}_cam.txt'.format(ref_view)))
-        # load the reference image
+        # load the reference images
         ref_img = read_img(os.path.join(scan_folder, 'images/{:0>8}.jpg'.format(ref_view)))
         # load the estimated depth of the reference view
         ref_depth_est = read_pfm(os.path.join(out_folder, 'depth_est/{:0>8}.pfm'.format(ref_view)))[0]
         # load the photometric mask of the reference view
         confidence = read_pfm(os.path.join(out_folder, 'confidence/{:0>8}.pfm'.format(ref_view)))[0]
+        # 置信度掩码图
         photo_mask = confidence > args.conf
 
-        all_srcview_depth_ests = []
-        all_srcview_x = []
-        all_srcview_y = []
-        all_srcview_geomask = []
+        all_srcview_depth_ests = []  # 所有src视图的深度图
+        all_srcview_x = []  # 所有src视图深度图的x坐标
+        all_srcview_y = []  # 所有src视图的深度图的y坐标
+        all_srcview_geomask = []  # 所有src视图的几何掩码
 
-        # compute the geometric mask
+        # TODO 计算几何掩码
         geo_mask_sum = 0
+        # 对于每一个src视图
         for src_view in src_views:
             # camera parameters of the source view
             src_intrinsics, src_extrinsics = read_camera_parameters(
@@ -317,9 +344,10 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
             # the estimated depth of the source view
             src_depth_est = read_pfm(os.path.join(out_folder, 'depth_est/{:0>8}.pfm'.format(src_view)))[0]
 
-            geo_mask, depth_reprojected, x2d_src, y2d_src = check_geometric_consistency(ref_depth_est, ref_intrinsics, ref_extrinsics,
-                                                                      src_depth_est,
-                                                                      src_intrinsics, src_extrinsics)
+            geo_mask, depth_reprojected, x2d_src, y2d_src = check_geometric_consistency(ref_depth_est, ref_intrinsics,
+                                                                                        ref_extrinsics,
+                                                                                        src_depth_est,
+                                                                                        src_intrinsics, src_extrinsics)
             geo_mask_sum += geo_mask.astype(np.int32)
             all_srcview_depth_ests.append(depth_reprojected)
             all_srcview_x.append(x2d_src)
@@ -339,7 +367,7 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
         print("processing {}, ref-view{:0>2}, photo/geo/final-mask:{}/{}/{}".format(scan_folder, ref_view,
                                                                                     photo_mask.mean(),
                                                                                     geo_mask.mean(), final_mask.mean()))
-
+        #
         if args.display:
             import cv2
             cv2.imshow('ref_img', ref_img[:, :, ::-1])
@@ -349,13 +377,14 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
             cv2.imshow('ref_depth * mask', ref_depth_est * final_mask.astype(np.float32) / 800)
             cv2.waitKey(0)
 
+        # 生成点云
         height, width = depth_est_averaged.shape[:2]
         x, y = np.meshgrid(np.arange(0, width), np.arange(0, height))
         # valid_points = np.logical_and(final_mask, ~used_mask[ref_view])
         valid_points = final_mask
         print("valid_points", valid_points.mean())
         x, y, depth = x[valid_points], y[valid_points], depth_est_averaged[valid_points]
-        #color = ref_img[1:-16:4, 1::4, :][valid_points]  # hardcoded for DTU dataset
+        # color = ref_img[1:-16:4, 1::4, :][valid_points]  # hardcoded for DTU dataset
 
         if num_stage == 1:
             color = ref_img[1::4, 1::4, :][valid_points]
@@ -370,10 +399,10 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
                               np.vstack((xyz_ref, np.ones_like(x))))[:3]
         vertexs.append(xyz_world.transpose((1, 0)))
         vertex_colors.append((color * 255).astype(np.uint8))
-
-
+    #
     vertexs = np.concatenate(vertexs, axis=0)
     vertex_colors = np.concatenate(vertex_colors, axis=0)
+
     vertexs = np.array([tuple(v) for v in vertexs], dtype=[('x', 'f4'), ('y', 'f4'), ('z', 'f4')])
     vertex_colors = np.array([tuple(v) for v in vertex_colors], dtype=[('red', 'u1'), ('green', 'u1'), ('blue', 'u1')])
 
@@ -401,14 +430,15 @@ def pcd_filter_worker(scan):
         save_name = 'mvsnet{:0>3}_l3.ply'.format(scan_id)
     else:
         save_name = '{}.ply'.format(scan)
-    pair_folder = os.path.join(args.testpath, scan)
-    scan_folder = os.path.join(args.outdir, scan)
-    out_folder = os.path.join(args.outdir, scan)
+    pair_folder = os.path.join(args.testpath, scan)  # pair文件所在目录
+    scan_folder = os.path.join(args.outdir, scan)  # scan输出目录
+    out_folder = os.path.join(args.outdir, scan)  # 输出目录
+    # 生成点云
     filter_depth(pair_folder, scan_folder, out_folder, os.path.join(args.outdir, save_name))
 
 
 def pcd_filter(testlist, number_worker):
-
+    # 将pcd_filter_worker方法包装成partial_func方法，因为pcd_filter_worker方法的参数是固定的，这样可以降低参数冗余
     partial_func = partial(pcd_filter_worker)
 
     p = Pool(number_worker, init_worker)
@@ -421,6 +451,7 @@ def pcd_filter(testlist, number_worker):
         p.close()
     p.join()
 
+
 if __name__ == '__main__':
 
     if args.testlist != "all":
@@ -431,9 +462,11 @@ if __name__ == '__main__':
         testlist = [e for e in os.listdir(args.testpath) if os.path.isdir(os.path.join(args.testpath, e))] \
             if not args.testpath_single_scene else [os.path.basename(args.testpath_single_scene)]
 
+    # TODO 保存所有的 深度图 和 掩码
     # step1. save all the depth maps and the masks in outputs directory
-    save_depth(testlist)
+    # save_depth(testlist)
 
+    # 使用光度约束和几何约束 过滤 已保存的深度图
     # step2. filter saved depth maps with photometric confidence maps and geometric constraints
     if args.filter_method == "normal":
         pcd_filter(testlist, args.num_worker)

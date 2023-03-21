@@ -50,7 +50,7 @@ def save_pfm(filename, image, scale=1):
     if image.dtype.name != 'float32':
         raise Exception('Image dtype must be float32.')
 
-    if len(image.shape) == 3 and image.shape[2] == 3:  # color image
+    if len(image.shape) == 3 and image.shape[2] == 3:  # color images
         color = True
     elif len(image.shape) == 2 or len(image.shape) == 3 and image.shape[2] == 1:  # greyscale
         color = False

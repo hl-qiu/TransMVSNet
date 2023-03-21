@@ -16,7 +16,7 @@ class MVSDataset(Dataset):
         self.nviews = nviews
         self.ndepths = ndepths
         self.interval_scale = interval_scale
-        self.fix_res = kwargs.get("fix_res", True)  #whether to fix the resolution of input image.
+        self.fix_res = kwargs.get("fix_res", True)  #whether to fix the resolution of input images.
         self.fix_wh = False
         self.max_h=max_h
         self.max_w=max_w

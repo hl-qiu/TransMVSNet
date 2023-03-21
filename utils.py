@@ -193,7 +193,7 @@ class DictAverageMeter(object):
         return {k: v / self.count for k, v in self.data.items()}
 
 
-# a wrapper to compute metrics for each image individually
+# a wrapper to compute metrics for each images individually
 def compute_metrics_for_each_image(metric_func):
     def wrapper(depth_est, depth_gt, mask, *args):
         batch_size = depth_gt.shape[0]
@@ -346,11 +346,11 @@ def local_pcd(depth, intr):
 
 def generate_pointcloud(rgb, depth, ply_file, intr, scale=1.0):
     """
-    Generate a colored point cloud in PLY format from a color and a depth image.
+    Generate a colored point cloud in PLY format from a color and a depth images.
 
     Input:
-    rgb_file -- filename of color image
-    depth_file -- filename of depth image
+    rgb_file -- filename of color images
+    depth_file -- filename of depth images
     ply_file -- filename of ply file
 
     """

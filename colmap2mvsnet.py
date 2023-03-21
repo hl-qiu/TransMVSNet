@@ -288,7 +288,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--test', action='store_true', default=False, help='If set, do not write to file.')
     parser.add_argument('--convert_format', action='store_true', default=False,
-                        help='If set, convert image to jpg format.')
+                        help='If set, convert images to jpg format.')
 
     args = parser.parse_args()
 

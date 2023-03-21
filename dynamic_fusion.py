@@ -48,7 +48,7 @@ def read_camera_parameters(filename,scale,index,flag):
 
     return intrinsics, extrinsics
 
-# read an image
+# read an images
 def read_img(filename):
     img = Image.open(filename)
     # scale 0~255 to 0~1
@@ -150,7 +150,7 @@ def filter_depth(scan_folder, out_folder, pair_path, plyfilename, photo_threshol
     pair_data = read_pair_file(pair_file)
 
     for ref_view, src_views in pair_data:
-        # load the reference image
+        # load the reference images
         ref_img = read_img(os.path.join(scan_folder, 'images/{:0>8}.jpg'.format(ref_view)))
         # load the estimated depth of the reference view
         ref_depth_est = read_pfm(os.path.join(scan_folder, 'depth_est/{:0>8}.pfm'.format(ref_view)))[0]

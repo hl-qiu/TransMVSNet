@@ -17,7 +17,7 @@ class MVSDataset(Dataset):
         self.interval_scale = interval_scale
         self.origin_size = origin_size
         self.light_idx=light_idx
-        self.image_scale = image_scale # use to resize image
+        self.image_scale = image_scale # use to resize images
 
         print('dataset:  origin_size {}, light_idx:{}, image_scale:{}'.format(
                     self.origin_size, self.light_idx, self.image_scale))
@@ -100,7 +100,7 @@ class MVSDataset(Dataset):
         depth_values = None
         proj_matrices = []
         for i, vid in enumerate(view_ids):
-            # NOTE that the id in image file names is from 000000000
+            # NOTE that the id in images file names is from 000000000
             img_filename = os.path.join(self.datapath,
                                         '{}/blended_images/{:0>8}.jpg'.format(scan, vid))
 

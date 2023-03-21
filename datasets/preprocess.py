@@ -17,7 +17,7 @@ def scale_camera(cam, scale=1):
     return new_cam
 
 def scale_image(image, scale=1, interpolation='linear'):
-    """ resize image using cv2 """
+    """ resize images using cv2 """
     if interpolation == 'linear':
         return cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
     if interpolation == 'nearest':
@@ -39,7 +39,7 @@ def scale_mvs_input(images, cams, depth_image=None, scale=1,view_num=5):
         return new_images, cams, depth_image
 
 def crop_mvs_input(images, cams, depth_image=None,view_num=5,max_h=1200,max_w=1600,base_image_size=8):
-    """ resize images and cameras to fit the network (can be divided by base image size) """
+    """ resize images and cameras to fit the network (can be divided by base images size) """
     
     new_images = []
     # crop images and cameras
@@ -65,7 +65,7 @@ def crop_mvs_input(images, cams, depth_image=None,view_num=5,max_h=1200,max_w=16
         cams[view][1][2] = cams[view][1][2] - start_h
 
     new_images = np.stack(new_images)
-    # crop depth image
+    # crop depth images
     if not depth_image is None:
         depth_image = depth_image[start_h:finish_h, start_w:finish_w]
         return new_images, cams, depth_image

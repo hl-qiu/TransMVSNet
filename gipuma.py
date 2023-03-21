@@ -13,12 +13,12 @@ def read_camera_parameters(filename):
     extrinsics = np.fromstring(' '.join(lines[1:5]), dtype=np.float32, sep=' ').reshape((4, 4))
     # intrinsics: line [7-10), 3x3 matrix
     intrinsics = np.fromstring(' '.join(lines[7:10]), dtype=np.float32, sep=' ').reshape((3, 3))
-    # TODO: assume the feature is 1/4 of the original image size
+    # TODO: assume the feature is 1/4 of the original images size
     # intrinsics[:2, :] /= 4
     return intrinsics, extrinsics
 
 def read_gipuma_dmb(path):
-    '''read Gipuma .dmb format image'''
+    '''read Gipuma .dmb format images'''
 
     with open(path, "rb") as fid:
         image_type = unpack('<i', fid.read(4))[0]
@@ -32,7 +32,7 @@ def read_gipuma_dmb(path):
 
 
 def write_gipuma_dmb(path, image):
-    '''write Gipuma .dmb format image'''
+    '''write Gipuma .dmb format images'''
 
     image_shape = np.shape(image)
     width = image_shape[1]
@@ -129,7 +129,7 @@ def mvsnet_to_gipuma(dense_folder, gipuma_point_folder):
         out_cam_file = os.path.join(gipuma_cam_folder, image_name + '.P')
         mvsnet_to_gipuma_cam(in_cam_file, out_cam_file)
 
-    # copy images to gipuma image folder
+    # copy images to gipuma images folder
     image_names = os.listdir(image_folder)
     for image_name in image_names:
         in_image_file = os.path.join(image_folder, image_name)

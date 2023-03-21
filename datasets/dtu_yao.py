@@ -121,7 +121,7 @@ class MVSDataset(Dataset):
         proj_matrices = []
 
         for i, vid in enumerate(view_ids):
-            # NOTE that the id in image file names is from 1 to 49 (not 0~48)
+            # NOTE that the id in images file names is from 1 to 49 (not 0~48)
             img_filename = os.path.join(self.datapath,
                                         'Rectified/{}_train/rect_{:0>3}_{}_r5000.png'.format(scan, vid + 1, light_idx))
 
