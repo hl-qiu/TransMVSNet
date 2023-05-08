@@ -404,8 +404,11 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
     vertex_colors = np.concatenate(vertex_colors, axis=0)
 
     vertexs = np.array([tuple(v) for v in vertexs], dtype=[('x', 'f4'), ('y', 'f4'), ('z', 'f4')])
+    # 将点云保存到txt文件
+    # np.savetxt(os.path.join(args.outdir, 'points.txt'), vertexs)
+    
+    # 输出ply点云文件
     vertex_colors = np.array([tuple(v) for v in vertex_colors], dtype=[('red', 'u1'), ('green', 'u1'), ('blue', 'u1')])
-
     vertex_all = np.empty(len(vertexs), vertexs.dtype.descr + vertex_colors.dtype.descr)
     for prop in vertexs.dtype.names:
         vertex_all[prop] = vertexs[prop]
@@ -464,7 +467,7 @@ if __name__ == '__main__':
 
     # TODO 保存所有的 深度图 和 掩码
     # step1. save all the depth maps and the masks in outputs directory
-    # save_depth(testlist)
+    save_depth(testlist)
 
     # 使用光度约束和几何约束 过滤 已保存的深度图
     # step2. filter saved depth maps with photometric confidence maps and geometric constraints

@@ -1,53 +1,33 @@
-import argparse, os, time, sys, gc, cv2, signal
-import torch
-import torch.nn as nn
-import torch.nn.parallel
-import torch.backends.cudnn as cudnn
-import torch.nn.functional as F
-import numpy as np
-from torch.utils.data import DataLoader
-from datasets import find_dataset_def
-from models import *
+import argparse
+
+import argon2
+
 from utils import *
 from datasets.data_io import read_pfm, save_pfm
 from plyfile import PlyData, PlyElement
 from PIL import Image
 import os
-import shutil
-
 
 parser = argparse.ArgumentParser(description='Predict depth, filter, and fuse')
+# pair文件所在目录
 parser.add_argument('--testpath', default='data/DTU/mvs_testing/dtu', help='testing data dir for some scenes')
-parser.add_argument('--testlist', default='lists/dtu', help='testing scene list')
+# 原先scan的结果所在目录（因为需要原先的深度图、相机参数）
 parser.add_argument('--outdir', default='outputs/dtu_testing', help='output dir')
-parser.add_argument('--ndepths', type=str, default="48,32,8", help='ndepths')
-parser.add_argument('--num_view', type=int, default=5, help='num of view')
+# scan列表文件
+parser.add_argument('--testlist', default='lists/dtu/test1.txt', help='testing scene list')
+parser.add_argument('--out_folder', default='outputs/opaque_output', help='testing scene list')
+# partial_mask文件所在目录
+parser.add_argument('--partial_mask_dir', default='data/opaque/opaque_2', help='testing scene list')
 
+parser.add_argument('--num_view', type=int, default=5, help='num of view')
+parser.add_argument('--h', type=int, default=800, help='testing max h')
+parser.add_argument('--w', type=int, default=800, help='testing max w')
 # filter
 parser.add_argument('--conf', type=float, default=0.03, help='prob confidence')
 parser.add_argument('--thres_view', type=int, default=5, help='threshold of num view')
 
-# parse arguments and check
+# 参数解析和检查
 args = parser.parse_args()
-
-def readDir(dirPath):
-    if dirPath[-1] == '/':
-        print
-        u'文件夹路径末尾不能加/'
-        return
-    allFiles = []
-    if os.path.isdir(dirPath):
-        fileList = os.listdir(dirPath)
-        for f in fileList:
-            f = dirPath + '/' + f
-            if os.path.isdir(f):
-                subFiles = readDir(f)
-                allFiles = subFiles + allFiles  # 合并当前目录与子目录的所有文件路径
-            else:
-                allFiles.append(f)
-        return allFiles
-    else:
-        return 'Error,not a dir'
 
 
 # read intrinsics and extrinsics
@@ -84,9 +64,6 @@ def read_pair_file(filename):
     return data
 
 
-def read_mask(scan_folder, scan):
-    return np.load(os.path.join(scan_folder, scan), allow_pickle=True).reshape((1504, 2016))
-
 # project the reference point cloud into the source view, then project back
 def reproject_with_depth(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, intrinsics_src, extrinsics_src):
     width, height = depth_ref.shape[1], depth_ref.shape[0]
@@ -102,7 +79,7 @@ def reproject_with_depth(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, i
                         np.vstack((xyz_ref, np.ones_like(x_ref))))[:3]
     # source view x, y
     K_xyz_src = np.matmul(intrinsics_src, xyz_src)
-    xy_src = K_xyz_src[:2] / K_xyz_src[2:3]   # 归一化坐标z
+    xy_src = K_xyz_src[:2] / K_xyz_src[2:3]  # 归一化坐标z
 
     # TODO step2. 重投影reproject the source view points with source view depth estimation
     # find the depth estimation of the source view
@@ -157,19 +134,22 @@ def check_geometric_consistency(depth_ref, intrinsics_ref, extrinsics_ref, depth
 
 
 # 深度图过滤
-def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
+def filter_depth(pair_folder, scan_folder, txtfilename, plyfilename, scanName):
     # 配对数据
     pair_data = read_pair_file(os.path.join(pair_folder, "pair.txt"))
     # 读取图片id列表
-    with open('/home/ubuntu/qhl/TransMVSNet/outputs/dtu_testing/scan00/img_list.txt', 'r') as f:
+    with open(os.path.join(args.outdir, "{}/img_list.txt".format(scanName)), 'r') as f:
         imgList = list(map(int, f.readline().split(',')))
+    img_dict = {}
+    for i, img in enumerate(imgList):
+        img_dict[i] = img
 
     vertexs = []  # 最终的点云
     vertex_colors = []  # 点云的颜色
     # 遍历pair文件中的每一组(ref_view，[src_views])
     for ref_view, src_views in pair_data:
-        if ref_view not in imgList:
-            continue
+        # if ref_view not in imgList:
+        #     continue
         # src_views = src_views[:args.num_view]  # 控制src视图的个数
         # 加载ref相机参数
         ref_intrinsics, ref_extrinsics = read_camera_parameters(
@@ -177,19 +157,19 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
         # 加载ref图片
         ref_img = read_img(os.path.join(scan_folder, 'images/{:0>8}.jpg'.format(ref_view)))
         # 加载ref的深度图
-        ref_depth_est = read_pfm(os.path.join(out_folder, 'depth_est/{:0>8}.pfm'.format(ref_view)))[0]
+        ref_depth_est = read_pfm(os.path.join(scan_folder, 'depth_est/{:0>8}.pfm'.format(ref_view)))[0]
 
         # 将所有掩码合并起来
         geo_mask_sum = 0
         all_srcview_depth_ests = []  # 所有src视图的深度图
         for src_view in src_views:
-            if src_view not in imgList:
-                continue
+            # if src_view not in imgList:
+            #     continue
             # 加载src视图的相机参数
             src_intrinsics, src_extrinsics = read_camera_parameters(
                 os.path.join(scan_folder, 'cams/{:0>8}_cam.txt'.format(src_view)))
             # 加载src视图的深度图
-            src_depth_est = read_pfm(os.path.join(out_folder, 'depth_est/{:0>8}.pfm'.format(src_view)))[0]
+            src_depth_est = read_pfm(os.path.join(scan_folder, 'depth_est/{:0>8}.pfm'.format(src_view)))[0]
             geo_mask, depth_reprojected, x2d_src, y2d_src = check_geometric_consistency(
                 ref_depth_est, ref_intrinsics, ref_extrinsics, src_depth_est, src_intrinsics, src_extrinsics)
 
@@ -200,9 +180,14 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
         depth_est_averaged = (sum(all_srcview_depth_ests) + ref_depth_est) / (geo_mask_sum + 1)
         # TODO 读取final_mask
         img = Image.open(os.path.join(scan_folder, os.path.join('mask', '{:0>8}_final.png'.format(ref_view))))
-        final_mask = np.array(img, dtype=np.int32).reshape((1504, 2016))
+        final_mask = np.array(img, dtype=np.int32).reshape((args.h, args.w))
         # TODO 读取partial_mask
-        partial_mask = np.load(os.path.join(scan_folder, os.path.join('opaque_out', 'opaque_{}_0.npy'.format(ref_view))), allow_pickle=True).reshape((1504, 2016))
+        # imgList = [11, 13, 15, 19, 2, 28, 31, 33, 34, 36, 46, 47, 53, 58, 61, 64, 68, 69, 72, 73, 79, 8, 80, 83, 84, 85, 95, 97, 99]
+
+        opaqueName = args.partial_mask_dir.split('/')[-1]
+        partial_mask = np.load(
+            os.path.join(args.partial_mask_dir, 'opaque_{}_{}.npy'.format(ref_view, int(opaqueName[-1])))
+        ).reshape((args.h, args.w))
         # TODO 取交
         final_mask = np.logical_and(partial_mask, final_mask)
         # cv2.imwrite('bbbb.jpg', final_mask* 255)
@@ -231,8 +216,9 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
     vertex_colors = np.concatenate(vertex_colors, axis=0)
     # 将每一行转换为一个tuple，每一个tuple代表一个点，由(x,y,z)坐标表示
     vertexs = np.array([tuple(v) for v in vertexs], dtype=[('x', 'f4'), ('y', 'f4'), ('z', 'f4')])
+    
     # TODO 将点云写成txt格式文件(不带颜色)
-    np.savetxt('/home/ubuntu/qhl/TransMVSNet/banana.txt', vertexs)
+    np.savetxt(txtfilename, vertexs)
 
     # TODO 将点云写成ply格式文件(带颜色)
     vertex_colors = np.array([tuple(v) for v in vertex_colors], dtype=[('red', 'u1'), ('green', 'u1'), ('blue', 'u1')])
@@ -243,20 +229,34 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
         vertex_all[prop] = vertex_colors[prop]
 
     el = PlyElement.describe(vertex_all, 'vertex')
+      # 保存点云ply
     PlyData([el]).write(plyfilename)
     print("saving the final model to", plyfilename)
 
 
 def generate(scan):
     scan_id = int(scan[4:])
-    save_name = 'mvsnet{:0>3}_partial3.ply'.format(scan_id)
+    save_name = 'mvsnet{:0>3}_partial.ply'.format(scan_id)
 
     pair_folder = os.path.join(args.testpath, scan)  # pair文件所在目录
-    scan_folder = os.path.join(args.outdir, scan)  # scan输出目录
-    out_folder = os.path.join(args.outdir, scan)  # 输出目录
+    scan_folder = os.path.join(args.outdir, scan)  # 原先scan的结果所在目录（因为需要原先的深度图、相机参数）
     # 生成点云
-    filter_depth(pair_folder, scan_folder, out_folder, os.path.join('outputs2', save_name))
+    out_dir = os.path.join(args.out_folder, 'opaque_{}'.format(int(args.partial_mask_dir.split('/')[-1][-1])))     # 输出结果的保存目录
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    # 保存点云txt的位置
+    txtfilename = os.path.join(out_dir, 'points.txt')
+    # 保存点云ply的位置
+    plyfilename = os.path.join(out_dir, save_name)
+    
+    # 深度图滤波
+    filter_depth(pair_folder, scan_folder, txtfilename, plyfilename, scan)
 
 
 if __name__ == '__main__':
-    generate('scan00')
+    # 读取场景数据目录名称
+    with open(args.testlist) as f:
+        content = f.readlines()
+        testlist = [line.rstrip() for line in content]
+    for scan in testlist:
+        generate(scan)

@@ -100,11 +100,13 @@ def read_cameras_binary(path_to_model_file):
             num_params = CAMERA_MODEL_IDS[model_id].num_params
             params = read_next_bytes(fid, num_bytes=8 * num_params,
                                      format_char_sequence="d" * num_params)
-            cameras[camera_id] = Camera(id=camera_id,
-                                        model=model_name,
-                                        width=width,
-                                        height=height,
-                                        params=np.array(params))
+            cameras[camera_line_index + 1] = Camera(
+            # cameras[camera_id] = Camera(
+                id=camera_id,
+                model=model_name,
+                width=width,
+                height=height,
+                params=np.array(params))
         assert len(cameras) == num_cameras
     return cameras
 
@@ -147,6 +149,7 @@ def read_images_binary(path_to_model_file):
         void Reconstruction::WriteImagesBinary(const std::string& path)
     """
     images = {}
+    tmp = []
     with open(path_to_model_file, "rb") as fid:
         num_reg_images = read_next_bytes(fid, 8, "Q")[0]
         for image_index in range(num_reg_images):
@@ -168,10 +171,17 @@ def read_images_binary(path_to_model_file):
             xys = np.column_stack([tuple(map(float, x_y_id_s[0::3])),
                                    tuple(map(float, x_y_id_s[1::3]))])
             point3D_ids = np.array(tuple(map(int, x_y_id_s[2::3])))
-            images[image_id] = Image(
+            
+            
+            tmp.append(int(image_name.split('.')[0][2:]))
+            
+            print('image_index : ' + str(image_index))
+            images[image_index+1] = Image(
+            # images[image_id] = Image(
                 id=image_id, qvec=qvec, tvec=tvec,
                 camera_id=camera_id, name=image_name,
                 xys=xys, point3D_ids=point3D_ids)
+    print(tmp)
     return images
 
 
@@ -297,7 +307,7 @@ if __name__ == '__main__':
     model_dir = os.path.join(args.dense_folder, 'sparse')
 
     # 保存输出文件的目录
-    output_dir = os.path.join(args.dense_folder, 'output/scan00')
+    output_dir = os.path.join(args.dense_folder, 'output/scan0425')
     # 保存相机内外参数的目录
     cam_dir = os.path.join(output_dir, 'cams')
     # 保存重命名后图片的目录
@@ -343,12 +353,13 @@ if __name__ == '__main__':
         e[:3, 3] = image.tvec
         e[3, 3] = 1
         extrinsic[image_id] = e
+        print(str(image_id) + ',' + image.name)
     print('extrinsic[1]\n', extrinsic[1], end='\n\n')
 
     # depth range and interval
     depth_ranges = {}
     for i in range(num_images):
-        zs = []
+        zs = []     
         for p3d_id in images[i + 1].point3D_ids:
             if p3d_id == -1:
                 continue
@@ -449,7 +460,8 @@ if __name__ == '__main__':
             f.write('\nintrinsic\n')
             for j in range(3):
                 for k in range(3):
-                    f.write(str(intrinsic[images[i + 1].camera_id][j, k]) + ' ')
+                    # f.write(str(intrinsic[images[i + 1].camera_id][j, k]) + ' ')
+                    f.write(str(intrinsic[i + 1][j, k]) + ' ')
                 f.write('\n')
             f.write('\n%f %f\n' % (depth_ranges[i + 1][0], depth_ranges[i + 1][1]))
     # 写pair配对文件
@@ -470,6 +482,6 @@ if __name__ == '__main__':
             img = cv2.imread(os.path.join(image_dir, images[i + 1].name))
             cv2.imwrite(os.path.join(renamed_dir, '%08d.jpg' % i), img)
         else:
-
             # 重命名复制图片文件到新的目录
             shutil.copyfile(os.path.join(image_dir, images[i + 1].name), os.path.join(renamed_dir, '%08d.jpg' % i))
+            pass

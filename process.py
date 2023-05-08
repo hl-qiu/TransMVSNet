@@ -3,6 +3,8 @@ import shutil
 
 import cv2
 import numpy as np
+from PIL import Image
+
 from datasets.data_io import read_pfm
 import numpy as np
 from plyfile import PlyData
@@ -21,11 +23,23 @@ def read_ply_cloud(filename):
 if __name__ == '__main__':
     # 修改image图片的名称
     # directory = "/home/ubuntu/qhl/TransMVSNet/data/DTU/scan00/cams"
-    # for i in range(107):
-    #     # j = 8361 + i
-    #     # shutil.copyfile(os.path.join(directory, 'IMG_' + str(j) + '.txt'), os.path.join(directory, '%08d_cam.txt' % i))
-    #     shutil.copyfile(os.path.join(directory, '%08d.txt' % i), os.path.join(directory, '%08d_cam.txt' % i))
+    directory = "/home/ubuntu/qhl/TransMVSNet/data/DTU/mvs_testing/dtu/scan0425/images"
+    for i in range(100):
+        # j = 8361 + i
+        # shutil.copyfile(os.path.join(directory, 'IMG_' + str(j) + '.txt'), os.path.join(directory, '%08d_cam.txt' % i))
+        shutil.copyfile(os.path.join(directory, 'r_' + str(i) + '.png'), os.path.join("/home/ubuntu/qhl/TransMVSNet/data/DTU/mvs_testing/dtu/scan0425/images1", '%08d.png' % i))
+        # shutil.copyfile(os.path.join(directory, '%08d.txt' % i), os.path.join(directory, '%08d_cam.txt' % i))
+    # 将png转为jpg
+    # directory1 = "/home/ubuntu/qhl/TransMVSNet/data/DTU/mvs_testing/dtu/scan0425/images1"
+    # for i in range(100):
+        # with Image.open(os.path.join(directory1, '%08d.png' % i)) as img:
+            # # 转换为RGB模式
+            # img = img.convert('RGB')
+            # # 保存为JPG图像
+            # img.save(os.path.join("/data/DTU/mvs_testing/dtu/scan0425/images", '%08d.jpg' % i))
+    
 
+    #
     # 读取pfm深度图文件
     # a = read_pfm('/home/ubuntu/qhl/TransMVSNet/outputs/dtu_testing/scan9/depth_est/00000000.pfm')
     # print(a)
@@ -55,11 +69,13 @@ if __name__ == '__main__':
     # cv2.imwrite('aaaaaaa20.jpg', partial_mask*255)
 
     # 读取ply点云
-    out_arr = read_ply_cloud('/home/ubuntu/qhl/TransMVSNet/outputs2/mvsnet000_partial3.ply')
-    out_arr = out_arr[:1004083]
-    np.savetxt('/home/ubuntu/qhl/TransMVSNet/banana2.txt', out_arr)
-    print("output array from input list : ", out_arr)
-    print("shape : ", out_arr.shape)
+    # out_arr = read_ply_cloud('/home/ubuntu/qhl/TransMVSNet/outputs2/mvsnet000_partial3.ply')
+    # out_arr = out_arr[:1004083]
+    # np.savetxt('/home/ubuntu/qhl/TransMVSNet/banana2.txt', out_arr)
+    # print("output array from input list : ", out_arr)
+    # print("shape : ", out_arr.shape)
+
+
 
 
 
