@@ -36,10 +36,10 @@ parser.add_argument('--cr_base_chs', type=str, default="8,8,8", help='cost regul
 parser.add_argument('--grad_method', type=str, default="detach", choices=["detach", "undetach"], help='grad method')
 parser.add_argument('--interval_scale', type=float, required=True, help='the depth interval scale')
 parser.add_argument('--num_view', type=int, default=5, help='num of view')
-# parser.add_argument('--max_h', type=int, default=864, help='testing max h')
-# parser.add_argument('--max_w', type=int, default=1152, help='testing max w')
-parser.add_argument('--max_h', type=int, default=1504, help='testing max h')
-parser.add_argument('--max_w', type=int, default=2016, help='testing max w')
+# parser.add_argument('--max_h', type=int, default=1200, help='testing max h')
+# parser.add_argument('--max_w', type=int, default=1600, help='testing max w')
+parser.add_argument('--max_h', type=int, default=512, help='testing max h')
+parser.add_argument('--max_w', type=int, default=640, help='testing max w')
 parser.add_argument('--fix_res', action='store_true', help='scene all using same res')
 parser.add_argument('--num_worker', type=int, default=4, help='depth_filer worker')
 parser.add_argument('--save_freq', type=int, default=20, help='save freq of local pcd')
@@ -322,6 +322,7 @@ def filter_depth(pair_folder, scan_folder, out_folder, plyfilename):
             os.path.join(scan_folder, 'cams/{:0>8}_cam.txt'.format(ref_view)))
         # load the reference images
         ref_img = read_img(os.path.join(scan_folder, 'images/{:0>8}.jpg'.format(ref_view)))
+        # ref_img = read_img(os.path.join(scan_folder, 'images/rect_{:0>3}_3_r5000.png'.format(ref_view+1)))
         # load the estimated depth of the reference view
         ref_depth_est = read_pfm(os.path.join(out_folder, 'depth_est/{:0>8}.pfm'.format(ref_view)))[0]
         # load the photometric mask of the reference view

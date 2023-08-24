@@ -173,7 +173,7 @@ def read_images_binary(path_to_model_file):
             point3D_ids = np.array(tuple(map(int, x_y_id_s[2::3])))
             
             
-            tmp.append(int(image_name.split('.')[0][2:]))
+            # tmp.append(int(image_name.split('.')[0][2:]))
             
             print('image_index : ' + str(image_index))
             images[image_index+1] = Image(
@@ -307,7 +307,7 @@ if __name__ == '__main__':
     model_dir = os.path.join(args.dense_folder, 'sparse')
 
     # 保存输出文件的目录
-    output_dir = os.path.join(args.dense_folder, 'output/scan0425')
+    output_dir = os.path.join(args.dense_folder, 'output/scan42')
     # 保存相机内外参数的目录
     cam_dir = os.path.join(output_dir, 'cams')
     # 保存重命名后图片的目录
@@ -450,20 +450,20 @@ if __name__ == '__main__':
     except os.error:
         print(cam_dir + ' already exist.')
     # 写cam参数
-    for i in range(num_images):
-        with open(os.path.join(cam_dir, '%08d_cam.txt' % i), 'w') as f:
-            f.write('extrinsic\n')
-            for j in range(4):
-                for k in range(4):
-                    f.write(str(extrinsic[i + 1][j, k]) + ' ')
-                f.write('\n')
-            f.write('\nintrinsic\n')
-            for j in range(3):
-                for k in range(3):
-                    # f.write(str(intrinsic[images[i + 1].camera_id][j, k]) + ' ')
-                    f.write(str(intrinsic[i + 1][j, k]) + ' ')
-                f.write('\n')
-            f.write('\n%f %f\n' % (depth_ranges[i + 1][0], depth_ranges[i + 1][1]))
+    # for i in range(num_images):
+    #     with open(os.path.join(cam_dir, '%08d_cam.txt' % i), 'w') as f:
+    #         f.write('extrinsic\n')
+    #         for j in range(4):
+    #             for k in range(4):
+    #                 f.write(str(extrinsic[i + 1][j, k]) + ' ')
+    #             f.write('\n')
+    #         f.write('\nintrinsic\n')
+    #         for j in range(3):
+    #             for k in range(3):
+    #                 # f.write(str(intrinsic[images[i + 1].camera_id][j, k]) + ' ')
+    #                 f.write(str(intrinsic[i + 1][j, k]) + ' ')
+    #             f.write('\n')
+    #         f.write('\n%f %f\n' % (depth_ranges[i + 1][0], depth_ranges[i + 1][1]))
     # 写pair配对文件
     with open(os.path.join(output_dir, 'pair.txt'), 'w') as f:
         f.write('%d\n' % len(images))   # 图片的数量
@@ -472,16 +472,16 @@ if __name__ == '__main__':
             for image_id, s in sorted_score:
                 f.write('%d %f ' % (image_id, s))
             f.write('\n')
-    # 写图片
-    try:
-        os.makedirs(renamed_dir)
-    except os.error:
-        print(renamed_dir + ' already exist.')
-    for i in range(num_images):
-        if args.convert_format:  # 若为True，则转化为jpg格式的图片
-            img = cv2.imread(os.path.join(image_dir, images[i + 1].name))
-            cv2.imwrite(os.path.join(renamed_dir, '%08d.jpg' % i), img)
-        else:
-            # 重命名复制图片文件到新的目录
-            shutil.copyfile(os.path.join(image_dir, images[i + 1].name), os.path.join(renamed_dir, '%08d.jpg' % i))
-            pass
+    # # 写图片
+    # try:
+    #     os.makedirs(renamed_dir)
+    # except os.error:
+    #     print(renamed_dir + ' already exist.')
+    # for i in range(num_images):
+    #     if args.convert_format:  # 若为True，则转化为jpg格式的图片
+    #         img = cv2.imread(os.path.join(image_dir, images[i + 1].name))
+    #         cv2.imwrite(os.path.join(renamed_dir, '%08d.jpg' % i), img)
+    #     else:
+    #         # 重命名复制图片文件到新的目录
+    #         shutil.copyfile(os.path.join(image_dir, images[i + 1].name), os.path.join(renamed_dir, '%08d.jpg' % i))
+    #         pass

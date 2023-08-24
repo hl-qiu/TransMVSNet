@@ -23,11 +23,12 @@ def read_ply_cloud(filename):
 if __name__ == '__main__':
     # 修改image图片的名称
     # directory = "/home/ubuntu/qhl/TransMVSNet/data/DTU/scan00/cams"
-    directory = "/home/ubuntu/qhl/TransMVSNet/data/DTU/mvs_testing/dtu/scan0425/images"
-    for i in range(100):
+    directory = "/home/ubuntu/qhl/TransMVSNet/data/DTU/mvs_testing/dtu/scan33/images"
+    for i in range(49):
         # j = 8361 + i
+        # j = i % 7
         # shutil.copyfile(os.path.join(directory, 'IMG_' + str(j) + '.txt'), os.path.join(directory, '%08d_cam.txt' % i))
-        shutil.copyfile(os.path.join(directory, 'r_' + str(i) + '.png'), os.path.join("/home/ubuntu/qhl/TransMVSNet/data/DTU/mvs_testing/dtu/scan0425/images1", '%08d.png' % i))
+        shutil.copyfile(os.path.join(directory, 'rect_{:0>3}_3_r5000.png'.format(i+1)), os.path.join(directory, '%08d.jpg' % i))
         # shutil.copyfile(os.path.join(directory, '%08d.txt' % i), os.path.join(directory, '%08d_cam.txt' % i))
     # 将png转为jpg
     # directory1 = "/home/ubuntu/qhl/TransMVSNet/data/DTU/mvs_testing/dtu/scan0425/images1"
@@ -65,7 +66,10 @@ if __name__ == '__main__':
     #     imgList = list(map(int, imgList))
     #     print(imgList)
     # TODO 读取partial_mask
-    # partial_mask = np.load('/home/ubuntu/qhl/TransMVSNet/outputs/dtu_testing/scan00/opaque_out/opaque_20_0.npy').reshape((1504, 2016)).astype(np.uint8)
+    # partial_mask = np.load('/home/ubuntu/qhl/TransMVSNet/data/opaque/ship/opaque_ship_2/opaque_0_2.npy')
+    # partial_mask2 = np.load('/home/ubuntu/qhl/TransMVSNet/data/opaque/opaque_scan33_2/opaque_6_2.npy')
+    # partial_mask4 = np.load('/home/ubuntu/qhl/TransMVSNet/data/opaque/opaque_scan62_0/opaque_6_0.npy')
+    # partial_mask3= partial_mask.reshape((800, 800)).astype(np.uint8)
     # cv2.imwrite('aaaaaaa20.jpg', partial_mask*255)
 
     # 读取ply点云

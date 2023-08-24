@@ -15,13 +15,13 @@ parser.add_argument('--testpath', default='data/DTU/mvs_testing/dtu', help='test
 parser.add_argument('--outdir', default='outputs/dtu_testing', help='output dir')
 # scan列表文件
 parser.add_argument('--testlist', default='lists/dtu/test1.txt', help='testing scene list')
-parser.add_argument('--out_folder', default='outputs/opaque_output', help='testing scene list')
+parser.add_argument('--out_folder', default='outputs/opaque_output/scan62', help='testing scene list')
 # partial_mask文件所在目录
-parser.add_argument('--partial_mask_dir', default='data/opaque/opaque_2', help='testing scene list')
+parser.add_argument('--partial_mask_dir', default='data/opaque/opaque_new_scan62_0', help='testing scene list')
 
 parser.add_argument('--num_view', type=int, default=5, help='num of view')
-parser.add_argument('--h', type=int, default=800, help='testing max h')
-parser.add_argument('--w', type=int, default=800, help='testing max w')
+parser.add_argument('--h', type=int, default=512, help='testing max h')
+parser.add_argument('--w', type=int, default=640, help='testing max w')
 # filter
 parser.add_argument('--conf', type=float, default=0.03, help='prob confidence')
 parser.add_argument('--thres_view', type=int, default=5, help='threshold of num view')
@@ -138,11 +138,11 @@ def filter_depth(pair_folder, scan_folder, txtfilename, plyfilename, scanName):
     # 配对数据
     pair_data = read_pair_file(os.path.join(pair_folder, "pair.txt"))
     # 读取图片id列表
-    with open(os.path.join(args.outdir, "{}/img_list.txt".format(scanName)), 'r') as f:
-        imgList = list(map(int, f.readline().split(',')))
-    img_dict = {}
-    for i, img in enumerate(imgList):
-        img_dict[i] = img
+    # with open(os.path.join(args.outdir, "{}/img_list.txt".format(scanName)), 'r') as f:
+    #     imgList = list(map(int, f.readline().split(',')))
+    # img_dict = {}
+    # for i, img in enumerate(imgList):
+    #     img_dict[i] = img
 
     vertexs = []  # 最终的点云
     vertex_colors = []  # 点云的颜色
@@ -187,6 +187,7 @@ def filter_depth(pair_folder, scan_folder, txtfilename, plyfilename, scanName):
         opaqueName = args.partial_mask_dir.split('/')[-1]
         partial_mask = np.load(
             os.path.join(args.partial_mask_dir, 'opaque_{}_{}.npy'.format(ref_view, int(opaqueName[-1])))
+            # os.path.join(args.partial_mask_dir, 'opaque_{}_{}.npy'.format(ref_view, 0))
         ).reshape((args.h, args.w))
         # TODO 取交
         final_mask = np.logical_and(partial_mask, final_mask)
